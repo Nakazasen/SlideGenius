@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.env
+.idea/
+.vscode/
+*.pptx
+!templates/*.pptx
+history.db
+*.log

@@ -1,0 +1,1 @@
+"""SlideGenius source package."""

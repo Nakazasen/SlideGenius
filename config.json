@@ -1,0 +1,120 @@
+{
+  "version": "1.0.0",
+  "api": {
+    "gemini_key": "AIzaSyAhbfmp1tQInObM8akGeJP7ShfiwevGPpE",
+    "model": "gemini-1.5-flash",
+    "waterfall_strategy": [
+      {
+        "is_active": true,
+        "model_id": "gemini-3-pro-preview",
+        "timeout": 10
+      },
+      {
+        "is_active": true,
+        "model_id": "gemini-3-flash-preview",
+        "timeout": 10
+      },
+      {
+        "is_active": true,
+        "model_id": "gemini-2.5-pro",
+        "timeout": 10
+      },
+      {
+        "is_active": true,
+        "model_id": "gemini-2.5-flash",
+        "timeout": 12
+      },
+      {
+        "is_active": true,
+        "model_id": "gemini-robotics-er-1.5-preview",
+        "timeout": 28
+      },
+      {
+        "is_active": true,
+        "model_id": "gemma-3-27b-it",
+        "timeout": 17
+      },
+      {
+        "is_active": true,
+        "model_id": "gemma-3-12b-it",
+        "timeout": 18
+      },
+      {
+        "is_active": true,
+        "model_id": "gemma-3-4b-it",
+        "timeout": 10
+      },
+      {
+        "is_active": true,
+        "model_id": "gemma-3n-e2b-it",
+        "timeout": 9
+      },
+      {
+        "is_active": true,
+        "model_id": "gemini-2.5-flash-lite",
+        "timeout": 7
+      },
+      {
+        "is_active": true,
+        "model_id": "gemini-2.5-computer-use-preview-10-2025",
+        "timeout": 10
+      },
+      {
+        "is_active": true,
+        "model_id": "gemini-2.5-flash-native-audio-latest",
+        "timeout": 10
+      },
+      {
+        "is_active": true,
+        "model_id": "gemini-2.5-flash-preview-tts",
+        "timeout": 10
+      },
+      {
+        "is_active": true,
+        "model_id": "gemma-3-1b-it",
+        "timeout": 10
+      },
+      {
+        "is_active": true,
+        "model_id": "imagen-4.0-ultra-generate-001",
+        "timeout": 10
+      },
+      {
+        "is_active": true,
+        "model_id": "veo-3.1-generate-preview",
+        "timeout": 10
+      }
+    ],
+    "gemini_keys": [
+      "AIzaSyAhbfmp1tQInObM8akGeJP7ShfiwevGPpE"
+    ]
+  },
+  "generation": {
+    "creativity_level": 70,
+    "auto_generate_images": false,
+    "include_speaker_notes": true,
+    "default_language": "vi"
+  },
+  "ui": {
+    "theme": "dark",
+    "window_width": 1400,
+    "window_height": 900
+  },
+  "paths": {
+    "output_folder": "",
+    "last_opened": ""
+  },
+  "fonts": {
+    "preset": "classic",
+    "heading_font": "Georgia",
+    "body_font": "Times New Roman"
+  },
+  "template": {
+    "selected": "modern_blue"
+  },
+  "wizard_preferences": {
+    "audience_index": 2,
+    "tone_index": 4,
+    "style_id": 2
+  }
+}

@@ -1,0 +1,73 @@
+{
+    "meta": {
+        "schema_version": "1.1.0",
+        "awf_version": "3.3.0"
+    },
+    "project": {
+        "name": "SlideGenius",
+        "type": "Desktop Application (PySide6)",
+        "status": "Production Ready (Packaged)"
+    },
+    "tech_stack": {
+        "language": "Python 3.10+",
+        "gui": "PySide6 (Qt 6)",
+        "ai": "Google Gemini API (google-generativeai fallback strategy)",
+        "security": "python-dotenv (.env support)",
+        "presentation": "python-pptx",
+        "image_gen": "Parallel Illustrator (QThreadPool) with fallback (Pollinations/Picsum)",
+        "testing": "pytest",
+        "packaging": "PyInstaller"
+    },
+    "database_schema": {
+        "engine": "SQLite",
+        "tables": [
+            "history (id, title, prompt, outline_json, template_name, output_path, created_at)",
+            "templates (id, name, display_name, description, category, preview_path, config_json, is_builtin, created_at)"
+        ]
+    },
+    "features": [
+        "AI Outline Generation (Gemini 1.5/2.0)",
+        "Express Mode (Template Selector + Fast Generate)",
+        "Multi-Screen Navigation (Home, History, Templates, Settings)",
+        "QStackedWidget Architecture",
+        "Interactive Template Library with Previews",
+        "History Tracking with Open/Delete/Regenerate",
+        "Advanced Customization Wizard (Audience, Tone, Style)",
+        "Wizard Preference Persistence",
+        "PPTX Export with 5 Templates",
+        "Smart Diagram Rendering",
+        "Text Translation",
+        "Dark/Light Theme Support",
+        "Waterfall Model Strategy",
+        "Parallel Image Generation (QThreadPool)",
+        "Secure API Key Management (.env)",
+        "Modular Settings Dialog"
+    ],
+    "knowledge_items": {
+        "patterns": [
+            "Client Pattern used for AI Service (instance-based, no global state)",
+            "ModelCascade for AI redundancy",
+            "WorkerThread for async AI operations",
+            "ConfigManager singleton with dot notation",
+            "ThemeManager for QSS styling",
+            "Factory pattern for Settings tabs",
+            "QStackedWidget for screen management",
+            "Parallel Runnable Pattern (QRunnable + QThreadPool) for heavy IO",
+            "Signal-Slot pattern for cross-component communication"
+        ],
+        "gotchas": [
+            "PPTX text visibility on diagram slides requires careful layout management",
+            "Gemini API prompt needs strict slide count clamping",
+            "PySide6 QThread required to prevent UI freeze",
+            "DatabaseManager class name vs file name confusion",
+            "google-genai Client requires api_key in constructor",
+            "google-genai import can hang in certain environments; forced fallback to google-generativeai is safer",
+            "Parallel image generation requires thread-safe signal objects"
+        ],
+        "conventions": [
+            "Tab components in settings_tabs/ folder",
+            "Screens in screens/ folder",
+            "Dialog attributes set on parent for cross-tab access"
+        ]
+    }
+}

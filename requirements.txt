@@ -1,0 +1,9 @@
+# SlideGenius - AI Slide Generator
+# Core dependencies
+PySide6>=6.6.0
+python-pptx>=0.6.21
+google-genai>=0.3.0
+
+# Utilities
+Pillow>=10.0.0
+python-dotenv>=1.0.0

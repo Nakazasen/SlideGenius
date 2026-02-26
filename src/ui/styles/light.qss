@@ -1,0 +1,286 @@
+/* SlideGenius Light Theme - Clean & Playful */
+
+/* ========== Global ========== */
+QWidget {
+    background-color: #F8FAFC;
+    color: #1E293B;
+    font-family: 'Segoe UI', 'Inter', sans-serif;
+    font-size: 14px;
+}
+
+QMainWindow {
+    background-color: #F8FAFC;
+}
+
+/* ========== Sidebar ========== */
+#sidebar {
+    background-color: #FFFFFF;
+    border-right: 1px solid #E2E8F0;
+}
+
+#sidebar QLabel#logo {
+    font-size: 18px;
+    font-weight: bold;
+    color: #1E293B;
+    padding: 8px;
+}
+
+#sidebar QPushButton {
+    background-color: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: left;
+    color: #64748B;
+    font-size: 14px;
+}
+
+#sidebar QPushButton:hover {
+    background-color: #F1F5F9;
+    color: #1E293B;
+}
+
+#sidebar QPushButton:checked {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #3B82F6, stop:1 #8B5CF6);
+    color: white;
+    font-weight: 500;
+}
+
+/* ========== Right Panel ========== */
+#rightPanel {
+    background-color: #FFFFFF;
+    border-left: 1px solid #E2E8F0;
+}
+
+#rightPanel QLabel#panelTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1E293B;
+    padding-bottom: 12px;
+}
+
+/* ========== Content Area ========== */
+#contentArea {
+    background-color: #F8FAFC;
+}
+
+/* ========== Cards ========== */
+QFrame.card {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+}
+
+QFrame.card:hover {
+    border-color: #8B5CF6;
+}
+
+/* ========== Buttons ========== */
+QPushButton {
+    background-color: #F1F5F9;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: #1E293B;
+    font-weight: 500;
+}
+
+QPushButton:hover {
+    background-color: #E2E8F0;
+}
+
+QPushButton:pressed {
+    background-color: #CBD5E1;
+}
+
+QPushButton#primaryBtn {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #F97316, stop:1 #EC4899);
+    color: white;
+    font-weight: 600;
+}
+
+QPushButton#primaryBtn:hover {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #EA580C, stop:1 #DB2777);
+}
+
+QPushButton#secondaryBtn {
+    background-color: transparent;
+    border: 1px solid #E2E8F0;
+    color: #1E293B;
+}
+
+QPushButton#secondaryBtn:hover {
+    border-color: #8B5CF6;
+    background-color: rgba(139, 92, 246, 0.05);
+}
+
+/* ========== Input Fields ========== */
+QLineEdit, QTextEdit, QPlainTextEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #1E293B;
+    selection-background-color: #8B5CF6;
+}
+
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
+    border-color: #8B5CF6;
+}
+
+QLineEdit::placeholder, QTextEdit::placeholder {
+    color: #94A3B8;
+}
+
+/* ========== SpinBox ========== */
+QSpinBox {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #1E293B;
+    selection-background-color: #8B5CF6;
+}
+
+QSpinBox:focus {
+    border-color: #8B5CF6;
+}
+
+QSpinBox::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 20px;
+    border-top-right-radius: 8px;
+    border-left: 1px solid #E2E8F0;
+    background: #F1F5F9;
+}
+
+QSpinBox::up-button:hover {
+    background: #E2E8F0;
+}
+
+QSpinBox::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    width: 20px;
+    border-bottom-right-radius: 8px;
+    border-left: 1px solid #E2E8F0;
+    background: #F1F5F9;
+}
+
+QSpinBox::down-button:hover {
+    background: #E2E8F0;
+}
+
+QSpinBox::up-arrow {
+    width: 8px;
+    height: 8px;
+    image: none;
+    border-left: 2px solid #64748B;
+    border-bottom: 2px solid #64748B;
+    transform: rotate(135deg);
+    margin: 4px;
+}
+
+QSpinBox::down-arrow {
+    width: 8px;
+    height: 8px;
+    image: none;
+    border-left: 2px solid #64748B;
+    border-bottom: 2px solid #64748B;
+    transform: rotate(-45deg);
+    margin: 4px;
+}
+
+QSpinBox::up-arrow:hover, QSpinBox::down-arrow:hover {
+    border-color: #1E293B;
+}
+
+/* ========== Scrollbar ========== */
+QScrollBar:vertical {
+    background: #F1F5F9;
+    width: 8px;
+    border-radius: 4px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #CBD5E1;
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #94A3B8;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+/* ========== Status Bar ========== */
+QStatusBar {
+    background-color: #FFFFFF;
+    border-top: 1px solid #E2E8F0;
+    color: #64748B;
+    padding: 4px 12px;
+}
+
+/* ========== Labels ========== */
+QLabel {
+    color: #1E293B;
+    background: transparent;
+}
+
+QLabel.muted {
+    color: #64748B;
+}
+
+QLabel.title {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* ========== ComboBox ========== */
+QComboBox {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: #1E293B;
+}
+
+QComboBox:hover {
+    border-color: #8B5CF6;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    selection-background-color: #8B5CF6;
+    selection-color: white;
+}
+
+/* ========== Slider ========== */
+QSlider::groove:horizontal {
+    background: #E2E8F0;
+    height: 6px;
+    border-radius: 3px;
+}
+
+QSlider::handle:horizontal {
+    background: #8B5CF6;
+    width: 16px;
+    height: 16px;
+    margin: -5px 0;
+    border-radius: 8px;
+}
+
+QSlider::sub-page:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #3B82F6, stop:1 #8B5CF6);
+    border-radius: 3px;
+}

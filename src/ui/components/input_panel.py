@@ -51,7 +51,7 @@ class InputPanel(QWidget):
         self.slides_spin = QSpinBox()
         self.slides_spin.setRange(1, 20)
         self.slides_spin.setValue(8)
-        self.slides_spin.setFixedWidth(50)
+        self.slides_spin.setFixedWidth(80)
         controls.addWidget(self.slides_spin)
         
         # Template Selector (For Express Mode)

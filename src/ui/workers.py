@@ -1,13 +1,18 @@
-from PySide6.QtCore import QThread, Signal, QRunnable, QThreadPool, QObject
+from PySide6.QtCore import QObject, QRunnable, QThread, QThreadPool, Signal
+
 from src.core.ai_service import AIService
-from src.data.models import Outline
+from src.data.config_manager import ConfigManager
+
 
 class ImageRunnableSignals(QObject):
-    """Signals for Parallel Image Generation."""
-    finished = Signal(int, str) # index, path
+    """Signals for parallel image generation."""
+
+    finished = Signal(int, str)
+
 
 class ImageRunnable(QRunnable):
     """Runnable for parallel image generation."""
+
     def __init__(self, index, prompt, img_gen, signals):
         super().__init__()
         self.index = index
@@ -20,62 +25,77 @@ class ImageRunnable(QRunnable):
             path = self.img_gen.generate_image(self.prompt)
             if path:
                 self.signals.finished.emit(self.index, str(path))
-        except Exception as e:
-            print(f"Parallel Image Error (Slide {self.index}): {e}")
+        except Exception as exc:
+            print(f"Parallel Image Error (Slide {self.index}): {exc}")
+
 
 class GenerateWorker(QThread):
     """Worker thread for AI generation."""
-    finished = Signal(object)  # Outline or None
-    progress = Signal(str)     # Progress message
+
+    finished = Signal(object)
+    progress = Signal(str)
     error = Signal(str)
-    
+
     def __init__(self, ai_service: AIService, prompt: str, num_slides: int, context: dict = None):
         super().__init__()
         self.ai_service = ai_service
         self.prompt = prompt
         self.num_slides = num_slides
         self.context = context or {}
-    
+        self.context.setdefault("interactive_ui", True)
+        self.context.setdefault("stable_mode", ConfigManager().get("generation.stable_mode", True))
+
     def run(self):
         try:
-            self.progress.emit("Đang khởi tạo linh hồn bài viết...")
-            outline = self.ai_service.generate_outline(self.prompt, self.num_slides, context=self.context)
-            
+            self.progress.emit("Đang khởi tạo cấu trúc bài viết...")
+            outline = self.ai_service.generate_outline(
+                self.prompt,
+                self.num_slides,
+                context=self.context,
+                progress_callback=self.progress.emit,
+            )
+
             if not outline:
                 self.error.emit("Không thể tạo dàn ý. Vui lòng thử lại.")
                 return
 
-            # Parallel Image Generation
-            from src.core.image_generator import ImageGenerator
-            img_gen = ImageGenerator()
-            
-            self.progress.emit(f"Đang chuẩn bị vẽ {len(outline.slides)} tranh...")
-            
-            pool = QThreadPool.globalInstance()
-            signals = ImageRunnableSignals()
-            
-            completed_count = 0
-            total_expected = sum(1 for s in outline.slides if s.image_prompt)
-            
-            def on_image_finished(index, path):
-                nonlocal completed_count
-                outline.slides[index].image_path = path
-                completed_count += 1
-                self.progress.emit(f"Đã vẽ xong {completed_count}/{total_expected} tranh...")
+            if outline.quality_retry_count:
+                self.progress.emit(f"Đã chạy thêm {outline.quality_retry_count} vòng cải thiện chất lượng deck...")
 
-            signals.finished.connect(on_image_finished)
+            config = ConfigManager()
+            should_generate_images = bool(config.get("generation.auto_generate_images", False)) and not self.context.get("stable_mode")
+            if should_generate_images:
+                from src.core.image_generator import ImageGenerator
 
-            for i, slide in enumerate(outline.slides):
-                if slide.image_prompt:
-                    runnable = ImageRunnable(i, slide.image_prompt, img_gen, signals)
-                    pool.start(runnable)
-            
-            # Wait for all image tasks to finish
-            pool.waitForDone()
-            
+                img_gen = ImageGenerator()
+                self.progress.emit(f"Đang chuẩn bị vẽ {len(outline.slides)} ảnh...")
+
+                pool = QThreadPool.globalInstance()
+                signals = ImageRunnableSignals()
+
+                completed_count = 0
+                total_expected = sum(1 for slide in outline.slides if slide.image_prompt)
+
+                def on_image_finished(index, path):
+                    nonlocal completed_count
+                    outline.slides[index].image_path = path
+                    completed_count += 1
+                    self.progress.emit(f"Đã vẽ xong {completed_count}/{total_expected} ảnh...")
+
+                signals.finished.connect(on_image_finished)
+
+                for index, slide in enumerate(outline.slides):
+                    if slide.image_prompt:
+                        runnable = ImageRunnable(index, slide.image_prompt, img_gen, signals)
+                        pool.start(runnable)
+
+                pool.waitForDone()
+            else:
+                self.progress.emit("Bỏ qua bước tạo ảnh để ưu tiên chế độ ổn định.")
             self.progress.emit("Hoàn tất!")
             self.finished.emit(outline)
-        except Exception as e:
+        except Exception as exc:
             import traceback
+
             traceback.print_exc()
-            self.error.emit(str(e))
+            self.error.emit(str(exc))

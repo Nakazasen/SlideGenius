@@ -34,6 +34,14 @@ class ConfigManager:
             if single_key and not key_list:
                 api_config["gemini_keys"] = [single_key]
                 self._save()
+
+            generation_config = self._config.setdefault("generation", {})
+            updated = False
+            if "stable_mode" not in generation_config:
+                generation_config["stable_mode"] = True
+                updated = True
+            if updated:
+                self._save()
         else:
             self._config = self._default_config()
             self._save()
@@ -50,19 +58,29 @@ class ConfigManager:
             "api": {
                 "gemini_key": "", # Deprecated, kept for backward compat
                 "gemini_keys": [], # List of API keys for rotation
-                "model": "gemini-1.5-flash",
+                "model": "gemma-3-27b-it",
                 "waterfall_strategy": []
             },
             "generation": {
+                "stable_mode": True,
                 "creativity_level": 70,
                 "auto_generate_images": False,
                 "include_speaker_notes": True,
-                "default_language": "vi"
+                "default_language": "vi",
+                "enable_self_critique": False,
+                "auto_retry_low_quality": False,
+                "enable_candidate_ranking": False,
+                "candidate_count": 1,
+                "enable_preview_qa": False,
+                "enable_preview_auto_fix": False
             },
             "fonts": {
                 "preset": "modern",  # Font preset name
                 "heading_font": "Montserrat",
                 "body_font": "Open Sans"
+            },
+            "template": {
+                "selected": "executive_blue"
             },
             "ui": {
                 "theme": "dark",

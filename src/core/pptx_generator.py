@@ -103,11 +103,18 @@ class PPTXGenerator:
         slide = self.prs.slides.add_slide(self.prs.slide_layouts[6])
         self._occupied_regions = []
         self._current_slide_item = slide_item
-        renderer = self.renderers.get(slide_item.layout_variant, self.render_content_2col)
+        renderer = self.renderers.get(slide_item.layout_variant)
+        if renderer is None:
+            slide_item.render_warnings.append(
+                f"Unsupported layout variant '{slide_item.layout_variant}'. Fallback to content layout."
+            )
+            fit.fallback_to_text = True
+            renderer = self.render_content_2col
         try:
             renderer(slide, slide_item, fit)
         except Exception:
             slide_item.render_warnings.append(f"Renderer fallback from {slide_item.layout_variant}.")
+            fit.fallback_to_text = True
             self.render_content_2col(slide, slide_item, fit)
         self._render_review_banner(slide, fit, slide_item)
         self._add_speaker_notes(slide, slide_item)
@@ -446,7 +453,7 @@ class PPTXGenerator:
             "insight": str(chart_spec.get("insight", "")).strip(),
         }
 
-    def _add_native_chart(self, slide, slide_item: SlideItem, left: float, top: float, width: float, height: float):
+    def _add_native_chart(self, slide, slide_item: SlideItem, fit: FitResult, left: float, top: float, width: float, height: float):
         """Render a native PowerPoint chart from chart_spec."""
         payload = self._normalize_chart_spec(slide_item, fit.visible_chart_spec)
         if not payload:
@@ -681,7 +688,7 @@ class PPTXGenerator:
             self._add_textbox(slide, 0.8, 1.18, 9.4, 0.48, slide_item.summary or slide_item.subtitle, fit.subtitle_size, self.template.muted_text_color, self.template.font_body)
         self._add_surface(slide, 0.82, 1.82, 7.45, 4.32, "#FBFDFF")
         self._accent_bar(slide, 0.82, 1.82, 7.45, self.template.primary_color, 0.07)
-        chart = self._add_native_chart(slide, slide_item, 0.9, 1.95, 7.2, 3.95)
+        chart = self._add_native_chart(slide, slide_item, fit, 0.9, 1.95, 7.2, 3.95)
         if chart is None:
             slide_item.render_warnings.append("Native chart rendering failed. Fallback to content layout.")
             self.render_content_2col(slide, slide_item, fit)

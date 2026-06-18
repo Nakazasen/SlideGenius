@@ -1,16 +1,8 @@
-"""Model Cascade - Waterfall Strategy for Gemini Models."""
-import logging
-from dataclasses import dataclass, field
-from typing import List, Optional, Any, Dict
-try:
-    # FORCE DISABLE: google.genai hangs on import
-    raise ImportError("Disabled due to hang")
-    from google import genai
-    from google.genai import types
-except ImportError:
-    # Fallback for old SDK or missing package
-    import google.generativeai as genai
-    types = None # Types not available in old SDK in same way
+"""Model Cascade - Waterfall Strategy for Gemini text models."""
+from dataclasses import dataclass
+from typing import Any, List, Optional
+
+from google import genai
 from src.data.config_manager import ConfigManager
 from src.utils.logger import get_logger
 
@@ -31,12 +23,29 @@ class ModelConfig:
 
 class ModelCascade:
     """Manages waterfall strategy for AI model selection."""
+
+    BLOCKED_MODEL_TOKENS = (
+        "tts",
+        "audio",
+        "imagen",
+        "veo",
+        "computer-use",
+    )
     
     DEFAULT_MODELS = [
-        # Top Tier
-        ModelConfig("gemini-2.0-flash", timeout=15),
-        ModelConfig("gemini-1.5-pro", timeout=20),
-        ModelConfig("gemini-1.5-flash", timeout=10),
+        ModelConfig("gemma-3-27b-it", timeout=18),
+        ModelConfig("gemma-4-26b-a4b-it", timeout=18),
+        ModelConfig("gemma-3n-e4b-it", timeout=14),
+        ModelConfig("gemma-3-4b-it", timeout=12),
+        ModelConfig("gemini-robotics-er-1.5-preview", timeout=20),
+        ModelConfig("gemma-3-12b-it", timeout=16),
+        ModelConfig("gemma-3n-e2b-it", timeout=12),
+        ModelConfig("gemma-3-1b-it", timeout=10),
+        ModelConfig("gemini-2.5-flash", timeout=12),
+        ModelConfig("gemini-2.5-flash-lite", timeout=9),
+        ModelConfig("gemma-4-31b-it", timeout=18),
+        ModelConfig("gemini-3-flash-preview", timeout=12),
+        ModelConfig("gemini-3.1-flash-lite", timeout=9),
     ]
 
     def __init__(self):
@@ -61,19 +70,39 @@ class ModelCascade:
         
         if saved_strategy:
             # Reconstruct ModelConfig objects from list of dicts
-            self.models = [ModelConfig(**m) for m in saved_strategy]
+            self.models = self._sanitize_models([ModelConfig(**m) for m in saved_strategy])
         else:
             self.models = self.DEFAULT_MODELS
             # Save defaults to config so UI has something to show/edit
+            self._save_defaults()
+
+        if not self.models:
+            self.models = self.DEFAULT_MODELS
             self._save_defaults()
             
     def _save_defaults(self):
         """Save default models to config."""
         strategy_data = [
             {"model_id": m.model_id, "timeout": m.timeout, "is_active": m.is_active}
-            for m in self.DEFAULT_MODELS
+            for m in self._sanitize_models(self.DEFAULT_MODELS)
         ]
         self.config_manager.set("api.waterfall_strategy", strategy_data)
+
+    def _sanitize_models(self, models: List[ModelConfig]) -> List[ModelConfig]:
+        """Keep only text-generation models that make sense for this app."""
+        sanitized: List[ModelConfig] = []
+        seen = set()
+        for model in models:
+            model_id = (model.model_id or "").strip()
+            lowered = model_id.lower()
+            if not model_id or model_id in seen:
+                continue
+            if any(token in lowered for token in self.BLOCKED_MODEL_TOKENS):
+                logger.warning("Skipping unsupported model in waterfall strategy: %s", model_id)
+                continue
+            seen.add(model_id)
+            sanitized.append(ModelConfig(model_id=model_id, timeout=model.timeout, is_active=model.is_active))
+        return sanitized
 
     def configure_api(self, api_keys: List[str]):
         """Update API keys."""
@@ -96,7 +125,7 @@ class ModelCascade:
         """Return list of active text-generation models."""
         return [m for m in self.models if m.is_active]
 
-    def generate_content(self, prompt: str, generation_config: Optional[Any] = None) -> Any:
+    def generate_content(self, prompt: str, generation_config: Optional[Any] = None, progress_callback=None) -> Any:
         """
         Execute Waterfall Strategy:
         Try models sequentially. If one fails/timeouts, try the next.
@@ -109,9 +138,13 @@ class ModelCascade:
         last_error = None
         
         logger.info(f"Starting Waterfall Generation with {len(active_models)} models and {len(self.api_keys)} keys")
+        if progress_callback:
+            progress_callback(f"Đang thử {len(active_models)} model theo thứ tự ưu tiên...")
 
         for model_cfg in active_models:
             logger.info(f"Trying model: {model_cfg.model_id} (Timeout: {model_cfg.timeout}s)")
+            if progress_callback:
+                progress_callback(f"Đang thử model {model_cfg.model_id}...")
             
             # Key Rotation Loop for current model
             keys_tried = 0
@@ -121,28 +154,16 @@ class ModelCascade:
                     break # No more keys to try
                 
                 try:
-                    # CHECK SDK VERSION - Using 'types' variable as it's only set in new SDK path
-                    if types is not None:
-                        # === NEW SDK (google-genai) ===
-                        client = genai.Client(api_key=current_key)
-                        response = client.models.generate_content(
-                            model=model_cfg.model_id,
-                            contents=prompt,
-                            config=generation_config
-                        )
-                    else:
-                        # === OLD SDK (google-generativeai) ===
-                        genai.configure(api_key=current_key)
-                        model = genai.GenerativeModel(model_cfg.model_id)
-                        
-                        # Convert config if needed, or pass validation
-                        # Old SDK expects generation_config as dict or GenerationConfig object
-                        response = model.generate_content(
-                            prompt,
-                            generation_config=generation_config
-                        )
+                    client = genai.Client(api_key=current_key)
+                    response = client.models.generate_content(
+                        model=model_cfg.model_id,
+                        contents=prompt,
+                        config=generation_config
+                    )
                     
                     logger.info(f"SUCCESS: {model_cfg.model_id}")
+                    if progress_callback:
+                        progress_callback(f"Đã nhận phản hồi từ model {model_cfg.model_id}.")
                     return response
 
                 except Exception as e:
@@ -151,6 +172,8 @@ class ModelCascade:
                     
                     # Check for quota errors (429)
                     if "429" in error_msg or "quota" in error_msg.lower():
+                        if progress_callback:
+                            progress_callback(f"Model {model_cfg.model_id} quá quota, chuyển model khác...")
                         logger.warning(f"Key {self.current_key_index} quota exhausted on {model_cfg.model_id}. Rotating key.")
                         self._rotate_key()
                         keys_tried += 1
@@ -158,6 +181,8 @@ class ModelCascade:
                         continue 
                         
                     last_error = e
+                    if progress_callback:
+                        progress_callback(f"Model {model_cfg.model_id} lỗi hoặc quá tải, chuyển model khác...")
                     break # Break inner loop, go to NEXT MODEL
             
             continue

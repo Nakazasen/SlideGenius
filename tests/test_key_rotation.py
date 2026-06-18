@@ -1,84 +1,67 @@
-
 import unittest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, call, patch
+
 from src.core.model_cascade import ModelCascade, ModelConfig
-import google.generativeai as genai
-from google.api_core import exceptions
+
 
 class TestKeyRotation(unittest.TestCase):
-    
     def setUp(self):
-        # Reset singleton or mock config
         self.cascade = ModelCascade()
-        # Override keys
         self.cascade.api_keys = ["key-1", "key-2"]
         self.cascade.current_key_index = 0
-        # Override models to just 1 for testing rotation logic
         self.cascade.models = [ModelConfig("test-model", timeout=1)]
-        
-    @patch("src.core.model_cascade.genai")
-    def test_normal_generation(self, mock_genai):
-        """Test simple generation using first key."""
-        mock_model = MagicMock()
+
+    @patch("src.core.model_cascade.genai.Client")
+    def test_normal_generation(self, mock_client_class):
+        """Use a fake google.genai client; no live Gemini call is made."""
         mock_response = MagicMock()
         mock_response.text = "Success"
-        mock_model.generate_content.return_value = mock_response
-        mock_genai.GenerativeModel.return_value = mock_model
-        
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
         response = self.cascade.generate_content("test prompt")
-        
-        # Should configure with key-1
-        mock_genai.configure.assert_called_with(api_key="key-1")
+
+        mock_client_class.assert_called_once_with(api_key="key-1")
+        mock_client.models.generate_content.assert_called_once_with(
+            model="test-model",
+            contents="test prompt",
+            config=None,
+        )
         self.assertEqual(response.text, "Success")
-        
-    @patch("src.core.model_cascade.genai")
-    def test_rotation_on_quota_error(self, mock_genai):
-        """Test rotation to key-2 when key-1 hits quota limit."""
-        mock_model = MagicMock()
-        
-        # First call raises ResourceExhausted, Second succeeds
+
+    @patch("src.core.model_cascade.genai.Client")
+    def test_rotation_on_quota_error(self, mock_client_class):
+        """Rotate to key-2 when key-1 hits quota, using fake clients only."""
         mock_response = MagicMock()
         mock_response.text = "Success on Key 2"
-        
-        # Side effect for generate_content
-        # We need to simulate that the FIRST call (with Key 1) fails, 
-        # and the SECOND call (with Key 2) succeeds.
-        # Since we create a NEW model instance each time in the loop, logic handles it.
-        # But mock_genai.GenerativeModel() returns a mock object.
-        
-        # Issue: The code calls GenerativeModel(id) inside the loop.
-        # So we can set side_effect on the mock_model instance's generate_content method?
-        # BUT if it returns the SAME mock object, side_effect iterator works.
-        mock_model.generate_content.side_effect = [
-            exceptions.ResourceExhausted("Quota exceeded"), # 1st call (Key 1)
-            mock_response # 2nd call (Key 2)
-        ]
-        
-        mock_genai.GenerativeModel.return_value = mock_model
-        
-        response = self.cascade.generate_content("test prompt")
-        
-        # Check configuration calls
-        # Should have called configure with Key 1, then Key 2
-        calls = [call(api_key="key-1"), call(api_key="key-2")]
-        mock_genai.configure.assert_has_calls(calls)
-        
-        self.assertEqual(response.text, "Success on Key 2")
-        
-    @patch("src.core.model_cascade.genai")
-    def test_all_keys_exhausted(self, mock_genai):
-        """Test failure when ALL keys hit quota limit."""
-        mock_model = MagicMock()
-        mock_model.generate_content.side_effect = exceptions.ResourceExhausted("Quota exceeded")
-        mock_genai.GenerativeModel.return_value = mock_model
-        
-        # Expect error after trying all keys
-        with self.assertRaises(Exception):
-            self.cascade.generate_content("test prompt")
-            
-        # Should have tried both keys
-        calls = [call(api_key="key-1"), call(api_key="key-2")]
-        mock_genai.configure.assert_has_calls(calls)
 
-if __name__ == '__main__':
+        key_1_client = MagicMock()
+        key_1_client.models.generate_content.side_effect = RuntimeError("429 quota exceeded")
+        key_2_client = MagicMock()
+        key_2_client.models.generate_content.return_value = mock_response
+        mock_client_class.side_effect = [key_1_client, key_2_client]
+
+        response = self.cascade.generate_content("test prompt")
+
+        mock_client_class.assert_has_calls([call(api_key="key-1"), call(api_key="key-2")])
+        self.assertEqual(response.text, "Success on Key 2")
+        self.assertEqual(self.cascade.current_key_index, 1)
+
+    @patch("src.core.model_cascade.genai.Client")
+    def test_all_keys_exhausted(self, mock_client_class):
+        """Raise after all configured keys hit quota without network access."""
+        key_1_client = MagicMock()
+        key_1_client.models.generate_content.side_effect = RuntimeError("429 quota exceeded")
+        key_2_client = MagicMock()
+        key_2_client.models.generate_content.side_effect = RuntimeError("429 quota exceeded")
+        mock_client_class.side_effect = [key_1_client, key_2_client]
+
+        with self.assertRaises(RuntimeError):
+            self.cascade.generate_content("test prompt")
+
+        mock_client_class.assert_has_calls([call(api_key="key-1"), call(api_key="key-2")])
+
+
+if __name__ == "__main__":
     unittest.main()

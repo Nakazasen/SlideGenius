@@ -19,7 +19,7 @@ APP_NAME = "SlideGenius"
 APP_VERSION = "1.0.0"
 
 # AI
-DEFAULT_MODEL = "gemini-1.5-flash"
+DEFAULT_MODEL = "gemma-3-27b-it"
 MAX_SLIDES = 20
 MIN_SLIDES = 3
 

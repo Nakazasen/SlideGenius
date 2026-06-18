@@ -99,7 +99,7 @@ class SlideGeniusApp(QMainWindow): # Lớp chính của ứng dụng, kế thừ
         self.templates = TEMPLATE_LIST
         
         self.template_buttons = {}  # Lưu reference đến các nút
-        self.selected_template = "modern_blue"  # Mẫu mặc định
+        self.selected_template = "executive_blue"  # Mẫu mặc định
         
         for template_id, name, color, desc in self.templates:
             btn = self._create_template_btn(template_id, name, color, desc)
@@ -107,7 +107,7 @@ class SlideGeniusApp(QMainWindow): # Lớp chính của ứng dụng, kế thừ
             right_layout.addWidget(btn)
         
         # Đánh dấu mẫu mặc định là đã chọn
-        self._update_template_selection("modern_blue")
+        self._update_template_selection("executive_blue")
         
         right_layout.addStretch() # Thêm một không gian co giãn để đẩy các nút lên trên
         
@@ -331,7 +331,7 @@ class SlideGeniusApp(QMainWindow): # Lớp chính của ứng dụng, kế thừ
             selected_tmpl_config = TEMPLATES.get(self.selected_template)
             if not selected_tmpl_config:
                 # Fallback if somehow invalid
-                selected_tmpl_config = TEMPLATES.get("modern_blue")
+                selected_tmpl_config = TEMPLATES.get("executive_blue")
                 
             generator = PPTXGenerator(selected_tmpl_config) # Tạo một trình tạo PPTX với một mẫu cụ thể
             output_path = generator.generate(outline, Path(file_path)) # Gọi phương thức tạo và lấy đường dẫn file đầu ra

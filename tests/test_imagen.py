@@ -1,27 +1,43 @@
-import sys
-import os
-# Add project root
-sys.path.append(os.getcwd())
+from pathlib import Path
+
+import pytest
 
 from src.core.image_generator import ImageGenerator
 
-def test_imagen():
-    print("Testing Smart Illustrator (Imagen)...")
-    
-    generator = ImageGenerator()
-    
-    prompt = "A futuristic eco-friendly city with flying lush green islands, cinematic lighting, 8k resolution, photorealistic."
-    print(f"Prompt: {prompt}")
-    
-    output_path = generator.generate_image(prompt, "test_imagen_city.png")
-    
-    if output_path:
-        print(f"SUCCESS: Image saved to {output_path}")
-        import os
-        os.startfile(output_path)
-    else:
-        print("FAILURE: Could not generate image.")
-        print("Note: This might happen if the API Key does not have access to Imagen 3 (Trusted Tester / Paid) or if the model name is incorrect in this region.")
 
-if __name__ == "__main__":
-    test_imagen()
+class OfflineImageGenerator(ImageGenerator):
+    """ImageGenerator variant that writes only to pytest temp folders."""
+
+    def __init__(self, output_dir: Path):
+        super().__init__()
+        self.output_dir = output_dir
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def _generate_via_pollinations(self, prompt: str, output_path: Path):
+        return None
+
+    def _generate_via_picsum(self, output_path: Path):
+        return None
+
+
+def test_imagen_placeholder_uses_tmp_path(tmp_path: Path):
+    """Default test must not call live image services or write tracked assets."""
+    generator = OfflineImageGenerator(tmp_path)
+
+    output_path = generator.generate_image(
+        "A futuristic eco-friendly city with flying lush green islands.",
+        "test_imagen_city.png",
+    )
+
+    generated = Path(output_path)
+    assert generated.exists()
+    assert generated.parent == tmp_path
+    assert generated.name == "test_imagen_city.png"
+    assert generated.stat().st_size > 0
+
+
+@pytest.mark.integration
+@pytest.mark.live_provider
+def test_imagen_live_provider(tmp_path: Path):
+    """Optional live image-provider check; skipped by default."""
+    pytest.skip("Live image provider checks require explicit credentials/network and are not unit tests.")

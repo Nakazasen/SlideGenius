@@ -1,36 +1,35 @@
-
-import sys
-import os
-# Add root to path
-sys.path.append(os.getcwd())
+from pathlib import Path
 
 from src.core.image_generator import ImageGenerator
-import time
 
-def test_generation():
-    print("Initializing ImageGenerator...")
-    try:
-        gen = ImageGenerator()
-        print("Generator initialized.")
-        
-        prompt = "A beautiful futuristic city with flying cars, digital art style"
-        print(f"Generating image for prompt: '{prompt}'")
-        
-        start_time = time.time()
-        path = gen.generate_image(prompt, filename=f"test_gen_{int(start_time)}.png")
-        end_time = time.time()
-        
-        if path and os.path.exists(path):
-            print(f"SUCCESS! Image generated at: {path}")
-            print(f"Time taken: {end_time - start_time:.2f}s")
-            print(f"File size: {os.path.getsize(path)} bytes")
-        else:
-            print("FAILURE: No image generated or file missing.")
-            
-    except Exception as e:
-        print(f"CRITICAL ERROR: {e}")
-        import traceback
-        traceback.print_exc()
 
-if __name__ == "__main__":
-    test_generation()
+class OfflineImageGenerator(ImageGenerator):
+    """Offline test generator that only writes to a pytest temporary directory."""
+
+    def __init__(self, output_dir: Path):
+        super().__init__()
+        self.output_dir = output_dir
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def _generate_via_pollinations(self, prompt: str, output_path: Path):
+        return None
+
+    def _generate_via_picsum(self, output_path: Path):
+        return None
+
+
+def test_generation_uses_placeholder_in_tmp_path(tmp_path: Path):
+    """Default image-generation test must not call network or write repo assets."""
+    generator = OfflineImageGenerator(tmp_path)
+
+    output_path = Path(
+        generator.generate_image(
+            "A beautiful futuristic city with flying cars, digital art style",
+            filename="test_gen_offline.png",
+        )
+    )
+
+    assert output_path.exists()
+    assert output_path.parent == tmp_path
+    assert output_path.name == "test_gen_offline.png"
+    assert output_path.stat().st_size > 0

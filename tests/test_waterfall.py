@@ -1,118 +1,146 @@
-"""Verification Script for AI Waterfall Strategy."""
+"""Unit tests and optional live scan for the AI waterfall strategy."""
+import logging
+import os
 import sys
 import unittest
-import logging
-from unittest.mock import MagicMock, patch
 from pathlib import Path
+from unittest.mock import MagicMock, call, patch
+
+import pytest
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.core.model_cascade import ModelCascade, ModelConfig
 from src.core.ai_service import AIService
+from src.core.model_cascade import ModelCascade, ModelConfig
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+
 class TestWaterfallStrategy(unittest.TestCase):
-    
     def setUp(self):
         self.cascade = ModelCascade()
-        # Mock Default Models to a smaller set for testing logic
         self.cascade.models = [
             ModelConfig(model_id="test-model-1", timeout=1, is_active=True),
             ModelConfig(model_id="test-model-2", timeout=1, is_active=True),
-            ModelConfig(model_id="test-model-3", timeout=1, is_active=True)
+            ModelConfig(model_id="test-model-3", timeout=1, is_active=True),
         ]
-        self.cascade.api_key = "TEST_API_KEY"
+        self.cascade.api_keys = ["unit-test-key"]
+        self.cascade.current_key_index = 0
 
-    @patch("google.generativeai.GenerativeModel")
-    def test_fallback_success_first_try(self, mock_model_class):
-        """Test success on first model."""
-        mock_instance = MagicMock()
-        mock_instance.generate_content.return_value.text = "Success"
-        mock_model_class.return_value = mock_instance
-        
+    @patch("src.core.model_cascade.genai.Client")
+    def test_fallback_success_first_try(self, mock_client_class):
+        """Test success on first model with a fake google.genai client."""
+        mock_response = MagicMock()
+        mock_response.text = "Success"
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
         response = self.cascade.generate_content("test prompt")
-        
+
         self.assertEqual(response.text, "Success")
-        # Should only try the first model
-        self.assertEqual(mock_model_class.call_count, 1)
+        mock_client_class.assert_called_once_with(api_key="unit-test-key")
+        mock_client.models.generate_content.assert_called_once_with(
+            model="test-model-1",
+            contents="test prompt",
+            config=None,
+        )
 
-    @patch("google.generativeai.GenerativeModel")
-    def test_fallback_on_error(self, mock_model_class):
-        """Test fallback when first model fails."""
-        # Setup mock to fail first time, succeed second time
-        mock_instance_1 = MagicMock()
-        mock_instance_1.generate_content.side_effect = Exception("Timeout")
-        
-        mock_instance_2 = MagicMock()
-        mock_instance_2.generate_content.return_value.text = "Success via Fallback"
-        
-        # We need side_effect for the constructor to return different instances
-        mock_model_class.side_effect = [mock_instance_1, mock_instance_2, MagicMock()]
-        
+    @patch("src.core.model_cascade.genai.Client")
+    def test_fallback_on_error(self, mock_client_class):
+        """Test model fallback when the first model fails."""
+        mock_response = MagicMock()
+        mock_response.text = "Success via Fallback"
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = [
+            RuntimeError("Timeout"),
+            mock_response,
+        ]
+        mock_client_class.return_value = mock_client
+
         response = self.cascade.generate_content("test prompt")
-        
+
         self.assertEqual(response.text, "Success via Fallback")
-        # Should try 2 models
-        self.assertEqual(mock_model_class.call_count, 2)
-        
-    @patch("google.generativeai.GenerativeModel")
-    def test_all_models_fail(self, mock_model_class):
-        """Test when everyone fails."""
-        mock_instance = MagicMock()
-        mock_instance.generate_content.side_effect = Exception("All failed")
-        mock_model_class.return_value = mock_instance
-        
-        with self.assertRaises(Exception):
+        self.assertEqual(mock_client.models.generate_content.call_count, 2)
+        self.assertEqual(
+            [c.kwargs["model"] for c in mock_client.models.generate_content.mock_calls],
+            ["test-model-1", "test-model-2"],
+        )
+
+    @patch("src.core.model_cascade.genai.Client")
+    def test_all_models_fail(self, mock_client_class):
+        """Test failure after all models fail without contacting a provider."""
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = RuntimeError("All failed")
+        mock_client_class.return_value = mock_client
+
+        with self.assertRaises(RuntimeError):
             self.cascade.generate_content("test prompt")
-            
-        # Should try all 3 models
-        self.assertEqual(mock_model_class.call_count, 3)
+
+        self.assertEqual(mock_client.models.generate_content.call_count, 3)
+        self.assertEqual(
+            [c.kwargs["model"] for c in mock_client.models.generate_content.mock_calls],
+            ["test-model-1", "test-model-2", "test-model-3"],
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.live_provider
+def test_scan_available_models_live_provider():
+    """Manual live connectivity check; skipped unless RUN_LIVE_PROVIDER_TESTS=1."""
+    if os.getenv("RUN_LIVE_PROVIDER_TESTS") != "1":
+        pytest.skip("Set RUN_LIVE_PROVIDER_TESTS=1 and configure Gemini keys to run live scan.")
+    scan_available_models()
+
 
 def scan_available_models():
     """Manual connectivity check (requires real API key)."""
     print("\n=== SCANNING AVAILABLE MODELS ===")
     ai = AIService()
     if not ai.is_configured():
-        print("❌ API Key not configured. Skipping live scan.")
-        return
-    
+        pytest.skip("API key not configured. Skipping live scan.")
+
     cascade = ModelCascade()
     print(f"Found {len(cascade.models)} configured models.")
-    
+
     print(f"{'#':<3} {'Model ID':<40} {'Timeout':<10} {'Active':<8} {'Status'}")
     print("-" * 80)
-    
-    import google.generativeai as genai
-    
+
+    from google import genai
+
+    api_key = cascade._get_current_key()
+    if not api_key:
+        pytest.skip("No Gemini API key configured. Skipping live scan.")
+
+    client = genai.Client(api_key=api_key)
     for idx, model_cfg in enumerate(cascade.models):
         status = "..."
         if not model_cfg.is_active:
             status = "SKIP (Inactive)"
-            print(f"{idx+1:<3} {model_cfg.model_id:<40} {model_cfg.timeout:<10} {str(model_cfg.is_active):<8} {status}")
+            print(f"{idx + 1:<3} {model_cfg.model_id:<40} {model_cfg.timeout:<10} {str(model_cfg.is_active):<8} {status}")
             continue
-            
+
         try:
-            model = genai.GenerativeModel(model_cfg.model_id)
-            # Just init is often enough to check valid name, 
-            # but generate is needed to check access
-            # We use a very cheap tokens prompt
-            response = model.generate_content("hi", request_options={'timeout': 5})
+            response = client.models.generate_content(
+                model=model_cfg.model_id,
+                contents="hi",
+            )
             if response:
-                 status = "✅ OK"
+                status = "OK"
         except Exception as e:
             err = str(e)
             if "404" in err:
-                status = "❌ Not Found"
+                status = "Not Found"
             elif "403" in err:
-                status = "⛔ Permission Denied" 
+                status = "Permission Denied"
             else:
-                status = f"⚠️ Error: {err[:30]}..."
-                
-        print(f"{idx+1:<3} {model_cfg.model_id:<40} {model_cfg.timeout:<10} {str(model_cfg.is_active):<8} {status}")
+                status = f"Error: {err[:30]}..."
+
+        print(f"{idx + 1:<3} {model_cfg.model_id:<40} {model_cfg.timeout:<10} {str(model_cfg.is_active):<8} {status}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--scan":

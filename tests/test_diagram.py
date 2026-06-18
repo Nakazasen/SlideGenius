@@ -1,16 +1,13 @@
-import sys
-import os
-# Add project root
-sys.path.append(os.getcwd())
-
 from pathlib import Path
-from src.data.models import Outline, SlideItem, SlideType
-from src.core.pptx_generator import PPTXGenerator
 
-def test_diagram_generation():
-    print("Testing Smart Diagram Generation (Comparison)...")
-    
-    # Create a mock Outline with a Comparison Diagram Slide
+import pytest
+
+from src.core.pptx_generator import PPTXGenerator
+from src.data.models import Outline, SlideItem, SlideType
+
+
+def test_diagram_generation_uses_tmp_path(tmp_path: Path):
+    """Generate comparison diagram PPTX without opening files in the OS shell."""
     outline = Outline(
         title="Cải Tiến Quy Trình Dịch Thuật",
         slides=[
@@ -26,8 +23,8 @@ def test_diagram_generation():
                         "nodes": [
                             {"text": "Nguồn tài liệu (JP, CN...)", "highlight": False},
                             {"text": "Team Phiên Dịch (Quá tải)", "highlight": True},
-                            {"text": "Người yêu cầu", "highlight": False}
-                        ]
+                            {"text": "Người yêu cầu", "highlight": False},
+                        ],
                     },
                     "after": {
                         "title": "Sau Cải Tiến (Phân loại tự động)",
@@ -35,27 +32,27 @@ def test_diagram_generation():
                             {"text": "Công cụ dịch tự động", "highlight": False},
                             {"text": "Cần chính xác cao -> Team dịch", "highlight": False},
                             {"text": "Tham khảo -> Dùng bản dịch máy", "highlight": False},
-                            {"text": "Không liên quan -> Bỏ qua", "highlight": False}
-                        ]
+                            {"text": "Không liên quan -> Bỏ qua", "highlight": False},
+                        ],
                     },
                     "benefits": [
                         "Tập trung nguồn lực vào tài liệu quan trọng",
                         "Dịch nhanh VN-JP bằng công cụ hỗ trợ",
-                        "Giữ nguyên định dạng PDF/Hình ảnh"
-                    ]
-                }
-            )
-        ]
+                        "Giữ nguyên định dạng PDF/Hình ảnh",
+                    ],
+                },
+            ),
+        ],
     )
-    
-    # Generate PPTX
-    generator = PPTXGenerator()
-    output_path = Path("test_comparison_diagram.pptx")
-    generator.generate(outline, output_path)
-    
-    print(f"Generated: {output_path.absolute()}")
-    import os
-    os.startfile(output_path)
 
-if __name__ == "__main__":
-    test_diagram_generation()
+    output_path = tmp_path / "test_comparison_diagram.pptx"
+    PPTXGenerator().generate(outline, output_path)
+
+    assert output_path.exists()
+    assert output_path.stat().st_size > 0
+
+
+@pytest.mark.integration
+def test_diagram_manual_open_integration(tmp_path: Path):
+    """Optional manual OS open check; skipped by default."""
+    pytest.skip("Manual os.startfile check is intentionally excluded from default unit tests.")

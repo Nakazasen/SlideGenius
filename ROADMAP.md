@@ -31,11 +31,13 @@ SlideGenius is no longer only an MVP outline-to-PPTX tool. The merged local code
 ## Verification snapshot
 
 - `py --version`: Python 3.13.5.
-- `py -m pytest`: now passes by default after SG-001/SG-002 test isolation.
-- Latest full run: 46 passed, 4 skipped.
+- `py -m pytest`: passes by default after SG-001/SG-002 test isolation and SG-003 export coverage.
+- Latest full run: 50 passed, 4 skipped.
 - Live provider/model scans and manual OS-open checks are marked as integration/live-provider checks and skipped by default.
 - Core import smoke check: passed.
 - Scripted PPTX smoke export: `scripts/generate_workshop_psychological_safety.py` generated an 11-slide editable PPTX.
+- SG-003 added offline golden export tests in `tests/test_export_layouts.py` for editable PPTX export, native chart/table/diagram scenarios, dense content warning/review banner behavior, and unsupported layout fallback warnings.
+- Next recommended issue: SG-004 PresentationSpec/schema contract tests, followed by SG-005 PPTX validator/export warnings.
 
 ## Priority 0 — Stabilize testability and CI
 

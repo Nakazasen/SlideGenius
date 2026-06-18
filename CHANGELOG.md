@@ -44,9 +44,14 @@ All notable changes to SlideGenius will be documented in this file.
   - 6 failed due to tests reaching live Gemini without a valid API key.
 - Completed SG-001/SG-002 test isolation:
   - default `py -m pytest` now passes without real API keys or live provider calls;
-  - latest result: 46 passed, 4 skipped;
+  - latest result after SG-001/SG-002: 46 passed, 4 skipped;
   - live provider and manual OS-open checks are behind `integration` / `live_provider` markers;
   - image/illustrator/diagram tests write outputs to `tmp_path` instead of repo root or tracked asset folders.
+- Completed SG-003 offline export layout coverage:
+  - added `tests/test_export_layouts.py`;
+  - added golden/offline PPTX layout export coverage for normal editable export, native chart/table/diagram scenarios, dense content warning/review banner behavior, and unsupported layout fallback warnings;
+  - updated `src/core/pptx_generator.py` so unsupported layout variants fall back with explicit machine-checkable render warnings;
+  - latest default `py -m pytest`: 50 passed, 4 skipped.
 - Ran core import smoke check successfully.
 - Ran PPTX export smoke script successfully:
   - `scripts/generate_workshop_psychological_safety.py` generated an 11-slide PPTX.
